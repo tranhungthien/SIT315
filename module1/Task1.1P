@@ -1,0 +1,24 @@
+// C++ code
+//
+void setup()
+{
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(13, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(7, INPUT);
+  
+  digitalWrite(13, HIGH);
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  if (digitalRead(7)){
+  	digitalWrite(12, HIGH);
+    Serial.println("high");
+  }
+  else{
+    digitalWrite(12, LOW);
+  	Serial.println("low");
+  }
+}
