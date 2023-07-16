@@ -1,0 +1,43 @@
+#define ldr_pin 7
+#define r_led_pin 12
+
+volatile bool ldr_state;
+
+void setup()
+{
+  pinMode(r_led_pin, OUTPUT);
+  pinMode(ldr_pin, INPUT);
+ 
+  //----------------------------------------
+  //           pin change interrupt
+  //----------------------------------------
+  // change port D to interrupt
+  PCICR |= B00000100;
+
+  // make pin 7 interrupt
+  PCMSK2 |= B10000000;
+
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  Serial.print("LDR: ");
+  Serial.println(ldr_state);
+}
+
+ISR(PCINT2_vect)
+{
+  if (digitalRead(ldr_pin)) 
+  {
+    // if there is no light
+    // turn light on
+    digitalWrite(r_led_pin, HIGH);
+    ldr_state = 0;
+  }else
+  {
+    digitalWrite(r_led_pin, LOW);
+  	ldr_state = 1;
+  }
+}
+  
