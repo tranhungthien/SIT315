@@ -1,0 +1,136 @@
+
+#define ldr 5
+#define tlt 6
+#define pir 7
+
+#define pin_12 4
+#define pin_11 3
+#define pin_10 2
+#define pin_9  1
+
+#define COUNT					15624
+#define CLOCK					16000000
+
+int interrput_in_seconds;
+int interrupt_count;
+
+volatile bool pir_state;
+volatile bool tlt_state;
+volatile bool ldr_state;
+
+void test()
+{
+  Serial.print(" LDR: ");
+  Serial.print(ldr_state);
+  Serial.print(" TLT: ");
+  Serial.print(tlt_state);
+  Serial.print(" PIR: ");
+  Serial.println(pir_state);
+}
+
+void setup()
+{
+  // set up port b registers
+  // pins 9, 10, 11 & 12 as output
+  DDRB |= B00011110;
+
+  //----------------------------------------
+  //             timer interrupt
+  //----------------------------------------
+  TCCR1A = 0;
+  TCCR1B = 0;
+
+  // set count value for timer to compare
+  // note: 15.624 kHz is the lowest frequency
+  // using 1024 pre-scaling in compare mode
+  TCNT1 = COUNT;
+
+  // Set 256 prescaler
+  TCCR1B |= (1 << CS12);
+  
+  // Enable in compare mode
+  TIMSK1 |= (1 << OCIE1A);
+
+  //----------------------------------------
+  //           pin change interrupt
+  //----------------------------------------
+  // setup interrupt pins as input
+  DDRD |= B00000000;
+  
+  // change port D to interrupt
+  PCICR |= B00000100;
+
+  // make pin 5,6 & 7 interrupt
+  PCMSK2 |= B11100000;
+
+  // set the time for timer1 ISR
+  interrput_in_seconds = 4;
+  interrupt_count = 0;
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  test();
+}
+
+ISR(PCINT2_vect)
+{
+  if (PIND & (1 << pir)) 
+  {
+    // if there is movement
+    // turn on light
+    // note: will turn off 
+    // after a few seconds
+    pir_state = 1;
+    PORTB |= (1 << pin_11);
+  }else
+  {
+  	pir_state = 0;
+    PORTB &= ~(1 << pin_11); 
+  }
+  if (!(PIND & (1 << tlt)))
+  {
+    // if there is a tilt
+    // turn led
+    tlt_state = 1;
+    PORTB |= (1 << pin_10);
+  }else
+  {
+    PORTB &= ~(1 << pin_10);
+  	tlt_state = 0;
+  }
+  if (PIND & (1 << ldr))
+  {
+    // if there is no light
+    // turn light on
+    PORTB |= (1 << pin_9);
+    ldr_state = 0;
+  }else
+  {
+    PORTB &= ~(1 << pin_9);
+  	ldr_state = 1;
+  }
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+  // Note: 1 second, 15.625 kHz
+  // is the lowest frequency in 
+  // compare mode on this controller.
+  // Reset timer
+  TCNT1 = COUNT;
+  if (interrupt_count == interrput_in_seconds)
+  {
+    interrupt_count = 0;
+  	if(PINB & (1<<pin_12))
+    {
+      // if LED is no turn it off
+      PORTB &= ~(1<<pin_12);
+    }else
+    {
+      PORTB |= (1<<pin_12);
+    }
+  }
+  interrupt_count++;
+}
