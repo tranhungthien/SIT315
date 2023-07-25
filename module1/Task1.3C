@@ -1,67 +1,67 @@
-// C++ code
-//
-#define ldr_pin 5
-#define pir_pin 7
 
-#define r_led_pin 11
-#define g_led_pin 12
+//==========================================
+// simple programm demonstrating the use of 
+// external interrupts on the UNO
+//==========================================
 
-volatile bool ldr_state;
-volatile bool pir_state;
+//assign pins 
+//note: only two external 
+//interrupt pins on the UNO
+//they are pins 2 & 3
+const int LDR_PIN = 2;
+const int PIR_PIN = 3;
+const int LDR_LED = 12;
+const int PIR_LED = 11;
+	
+//state variables
+volatile bool pir_state = LOW;
+volatile bool ldr_state = HIGH;
 
+//LDR interrupt routine
+void ldr_interrupt(){
+  if(digitalRead(LDR_PIN)){ 
+    digitalWrite(LDR_LED, HIGH);
+    ldr_state = HIGH;
+  }
+  else {
+    digitalWrite(LDR_LED, LOW);
+  	ldr_state = LOW;
+  }
+}
+
+//PIR interrupt routine
+void pir_interrupt(){
+  pir_state = !pir_state;
+  digitalWrite(PIR_LED, pir_state);
+}
+
+//configure
 void setup()
 {
-  pinMode(r_led_pin, OUTPUT);
-  pinMode(g_led_pin, OUTPUT);
-  
-  pinMode(pir_pin, INPUT);
-  pinMode(ldr_pin, INPUT);
-  
-  //----------------------------------------
-  //           pin change interrupt
-  //----------------------------------------
-  // change port D to interrupt
-  PCICR |= B00000100;
-
-  // make pin 5 & 7 interrupt
-  PCMSK2 |= B10100000;
-
+  //designate pin roles
+  pinMode(LDR_PIN, INPUT);
+  pinMode(PIR_PIN, INPUT);
+  pinMode(LDR_LED, OUTPUT);
+  pinMode(PIR_LED, OUTPUT);
+  //simulate a dark environment to start
+  digitalWrite(LDR_PIN, HIGH);
+  //setup interrupt pins and ISR
+  attachInterrupt(digitalPinToInterrupt(LDR_PIN), ldr_interrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIR_PIN), pir_interrupt, CHANGE);
+  //create serial object and initialise baud rate
   Serial.begin(9600);
 }
 
-void loop()
-{
-  Serial.print("LDR: ");
+void simulated_long_process(){
+  //read output/state
+  Serial.print("ldr state: ");
   Serial.print(ldr_state);
-  Serial.print(" PIR: ");
+  Serial.print(" pir state: ");
   Serial.println(pir_state);
+  //delay(200);   
 }
 
-ISR(PCINT2_vect)
-{
-  if (digitalRead(pir_pin)) 
-  {
-    // if there is movement
-    // turn on light
-    // note: will turn off 
-    // after a few seconds
-    pir_state = 1;
-    digitalWrite(g_led_pin, HIGH);
-  }else
-  {
-  	pir_state = 0;
-    digitalWrite(g_led_pin, LOW);
-  }
-  if (digitalRead(ldr_pin)) 
-  {
-    // if there is no light
-    // turn light on
-    digitalWrite(r_led_pin, HIGH);
-    ldr_state = 0;
-  }else
-  {
-    digitalWrite(r_led_pin, LOW);
-  	ldr_state = 1;
-  }
+void loop()
+{ 
+  simulated_long_process();
 }
-  
